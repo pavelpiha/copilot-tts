@@ -1,0 +1,14 @@
+.DS_Store
+.pytest_cache/
+node_modules/
+out/
+copilot/**
+
+# Python caches and virtualenvs
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local secrets
+.env
