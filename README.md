@@ -1,5 +1,11 @@
 # Copilot TTS
 
+<p align="center">
+  <a href="https://ko-fi.com/pavelpiha">
+    <img src="https://img.shields.io/badge/☕ Buy me a coffee-%23FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi"/>
+  </a>
+</p>
+
 A VS Code extension that reads GitHub Copilot Chat responses aloud using a local TTS server.
 
 ![Copilot TTS Screenshot](assets/Screenshot.png)
