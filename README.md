@@ -2,7 +2,7 @@
 
 A VS Code extension that reads GitHub Copilot Chat responses aloud using a local TTS server.
 
-![Copilot TTS Screenshot](Screenshot.png)
+![Copilot TTS Screenshot](assets/Screenshot.png)
 
 Supports macOS and Windows 11.
 

@@ -2,13 +2,13 @@
   "name": "copilot-tts",
   "displayName": "Copilot TTS - Read Responses Aloud",
   "description": "Reads GitHub Copilot Chat responses aloud using the on-device TTS model",
-  "version": "1.6.12",
+  "version": "1.6.13",
   "publisher": "pavel-piha",
   "repository": {
     "type": "git",
     "url": "https://github.com/pavelpiha/copilot-tts.git"
   },
-  "icon": "icon.png",
+  "icon": "assets/icon.png",
   "engines": {
     "vscode": "^1.90.0",
     "node": ">=20.0.0"
