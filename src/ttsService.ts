@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
 import * as http from "http";
+import * as net from "net";
+import * as os from "os";
 import * as path from "path";
 import * as fs from "fs";
 import * as fsPromises from "fs/promises";
-import { ChildProcess, spawn } from "child_process";
+import { ChildProcess, spawn, execFile } from "child_process";
 import { AudioPlayer } from "./audioPlayer";
 import {
   getConfiguredPythonCommand,
@@ -61,6 +63,8 @@ export class TtsService {
   /** Cross-window playback lock file path (set via setGlobalStorageUri). */
   private _playbackLockPath: string | undefined;
   private readonly _vsCodeSessionId = vscode.env.sessionId;
+  /** The port the running server is actually bound to (may differ from configured port). */
+  private _activePort: number | undefined;
 
   private _lastResponseText = "";
   private _lastResponseChatName = "";
@@ -175,7 +179,7 @@ export class TtsService {
     const cfg = vscode.workspace.getConfiguration("copilot-tts");
     const voice = cfg.get<string>("voice", "M1");
     const lang = cfg.get<string>("language", "en");
-    const port = cfg.get<number>("port", 8765);
+    const port = this._activePort ?? cfg.get<number>("port", 8765);
     const readCodeBlocks = cfg.get<boolean>("readCodeBlocks", false);
 
     const cleaned = stripMarkdown(text, readCodeBlocks);
@@ -658,15 +662,25 @@ export class TtsService {
       context,
       configuredPython,
     );
-    const port = cfg.get<number>("port", 8765);
+    const configuredPort = cfg.get<number>("port", 8765);
     const serverScript = path.join(
       context.extensionPath,
       "server",
       "tts_server.py",
     );
 
-    if (await this._reuseHealthyServer(port)) {
+    if (await this._reuseHealthyServer(configuredPort)) {
+      this._activePort = configuredPort;
       return;
+    }
+
+    // Find a free port: use the configured one if available, otherwise the next free port.
+    const port = await this._findFreePort(configuredPort);
+    if (port !== configuredPort) {
+      await this._logPortOwner(configuredPort);
+      this.log(
+        `[INFO] Port ${configuredPort} is in use — using port ${port} instead`,
+      );
     }
 
     this._updateStatus("$(sync~spin) TTS: starting…", true);
@@ -713,6 +727,7 @@ export class TtsService {
           void this._handleServerExit(code, port);
         });
         this._isReady = true;
+        this._activePort = port;
         this._updateStatus("$(unmute) TTS: ready", false);
         if (options?.showReadyMessage !== false) {
           vscode.window.showInformationMessage("Copilot TTS server is ready");
@@ -767,6 +782,7 @@ export class TtsService {
       }
     }
     this._isReady = false;
+    this._activePort = undefined;
     this.serverProcess = undefined;
     this._updateStatus("$(mute) TTS: stopped", false);
   }
@@ -809,6 +825,7 @@ export class TtsService {
     }
 
     this._isReady = true;
+    this._activePort = port;
     this._updateStatus("$(unmute) TTS: ready", false);
     this.log(`[INFO] Reusing existing healthy TTS server on 127.0.0.1:${port}`);
     return true;
@@ -839,6 +856,62 @@ export class TtsService {
   }
 
   // ── HTTP helpers ──────────────────────────────────────────────────────────
+
+  /**
+   * Probe whether a TCP port is free by attempting to bind to it.
+   * If the given port is already in use, increments until a free one is found.
+   */
+  private _findFreePort(startPort: number): Promise<number> {
+    return new Promise<number>((resolve) => {
+      const tryPort = (port: number): void => {
+        const server = net.createServer();
+        server.once("error", () => tryPort(port + 1));
+        server.once("listening", () => {
+          server.close(() => resolve(port));
+        });
+        server.listen(port, "127.0.0.1");
+      };
+      tryPort(startPort);
+    });
+  }
+
+  /**
+   * Log which process owns the given port (best-effort, platform-specific).
+   * Uses `lsof` on macOS/Linux and `netstat` on Windows.
+   */
+  private async _logPortOwner(port: number): Promise<void> {
+    const platform = os.platform();
+    const [cmd, args] =
+      platform === "win32"
+        ? ["netstat", ["-ano"]]
+        : ["lsof", ["-nP", `-i:${port}`]];
+
+    await new Promise<void>((resolve) => {
+      execFile(cmd, args, { timeout: 5_000 }, (err, stdout, stderr) => {
+        if (err && !stdout) {
+          this.log(
+            `[INFO] Could not identify process on port ${port}: ${err.message}`,
+          );
+          resolve();
+          return;
+        }
+        const output = (stdout || stderr).trim();
+        // On Windows, filter to lines containing the port number.
+        const lines =
+          platform === "win32"
+            ? output.split("\n").filter((l) => l.includes(`:${port} `))
+            : output.split("\n");
+        if (lines.length > 0) {
+          this.log(
+            `[INFO] Process(es) using port ${port}:\n${lines.join("\n")}`,
+          );
+        } else {
+          this.log(`[INFO] No process information found for port ${port}`);
+        }
+        resolve();
+      });
+    });
+  }
 
   private synthesize(
     text: string,

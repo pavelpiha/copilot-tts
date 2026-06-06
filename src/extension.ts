@@ -34,7 +34,25 @@ async function cleanupLocalRuntimeData(
     await config.update("pythonPath", "", vscode.ConfigurationTarget.Global);
   }
 
-  await fs.rm(managedStorageRoot, { recursive: true, force: true });
+  // Delete each entry inside the directory instead of the directory itself.
+  // Removing the root with fs.rm({ recursive }) ends with an fs.rmdir() call
+  // on the root; if VS Code writes to the directory between the recursive
+  // empty step and that final rmdir, the call throws ENOTEMPTY.
+  // Deleting only the contents avoids ever calling rmdir on the root.
+  let entries: string[];
+  try {
+    entries = await fs.readdir(managedStorageRoot);
+  } catch {
+    return; // directory absent — nothing to clean up
+  }
+  await Promise.all(
+    entries.map((entry) =>
+      fs.rm(path.join(managedStorageRoot, entry), {
+        recursive: true,
+        force: true,
+      }),
+    ),
+  );
 }
 
 function syncChatModeStatusBars(
