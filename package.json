@@ -1,0 +1,227 @@
+{
+  "name": "copilot-tts",
+  "displayName": "Copilot TTS - Read Responses Aloud",
+  "description": "Reads GitHub Copilot Chat responses aloud using the on-device TTS model",
+  "version": "1.6.11",
+  "publisher": "pavel-piha",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=20.0.0"
+  },
+  "categories": [
+    "Other",
+    "AI"
+  ],
+  "keywords": [
+    "copilot",
+    "tts",
+    "text-to-speech",
+    "accessibility",
+    "voice"
+  ],
+  "enabledApiProposals": [
+    "chatParticipantPrivate",
+    "chatPromptFiles",
+    "chatHooks"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilot-tts.initialize",
+        "title": "Initialize Copilot TTS",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.setSpeed",
+        "title": "Set TTS Speed",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.stopReading",
+        "title": "Stop Reading",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.startServer",
+        "title": "Start TTS Server",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.stopServer",
+        "title": "Stop TTS Server",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.cleanupLocalData",
+        "title": "Clean Local TTS Data",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.toggleDebug",
+        "title": "Toggle Verbose Logging",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.showStatus",
+        "title": "Show TTS Server Status",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.playLast",
+        "title": "Play Last TTS Response",
+        "category": "Copilot TTS"
+      },
+      {
+        "command": "copilot-tts.toggleChatMode",
+        "title": "Toggle TTS Chat Mode (auto-read all responses)",
+        "category": "Copilot TTS"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot TTS",
+      "properties": {
+        "copilot-tts.port": {
+          "type": "number",
+          "default": 8765,
+          "description": "Port for the local TTS server"
+        },
+        "copilot-tts.voice": {
+          "type": "string",
+          "default": "M1",
+          "enum": [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "F1",
+            "F2",
+            "F3",
+            "F4"
+          ],
+          "description": "Preset voice for TTS synthesis"
+        },
+        "copilot-tts.language": {
+          "type": "string",
+          "default": "en",
+          "enum": [
+            "en",
+            "ko",
+            "ja",
+            "fr",
+            "de",
+            "es",
+            "ru",
+            "uk",
+            "pl",
+            "pt",
+            "it",
+            "nl",
+            "ar",
+            "hi",
+            "tr",
+            "sv",
+            "da",
+            "fi",
+            "cs",
+            "hu",
+            "ro",
+            "bg",
+            "hr",
+            "sk",
+            "sl",
+            "lt",
+            "lv",
+            "et",
+            "el",
+            "id",
+            "vi"
+          ],
+          "description": "Language for TTS synthesis"
+        },
+        "copilot-tts.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Python 3 executable override. Leave empty to auto-detect (for example: py -3 on Windows, python3 on macOS/Linux)."
+        },
+        "copilot-tts.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug logging in the 'Copilot TTS Server' output channel. When false (default), only server INFO/ERROR lines are shown. When true, internal [TTS ...] trace lines (session keys, send chunks, session-switch events) are also printed."
+        },
+        "copilot-tts.readCodeBlocks": {
+          "type": "boolean",
+          "default": false,
+          "description": "Controls how code is handled during TTS playback. When false (default): inline code content is read aloud (backtick delimiters stripped) and multi-line fenced code blocks are silently skipped. When true: both inline code and fenced code blocks are read verbatim."
+        },
+        "copilot-tts.speed": {
+          "type": "number",
+          "default": 1,
+          "enum": [
+            0.5,
+            0.75,
+            1,
+            1.25,
+            1.5,
+            2
+          ],
+          "description": "TTS playback speed (also configurable from the Copilot TTS panel)"
+        },
+        "copilot-tts.autoRouteAllChat": {
+          "type": "boolean",
+          "default": false,
+          "description": "Legacy setting. TTS Chat Mode now uses Copilot Stop hooks to read plain chat replies aloud automatically. Prompts that already start with @ or / are left alone."
+        }
+      }
+    },
+    "views": {
+      "panel": [
+        {
+          "type": "webview",
+          "id": "copilot-tts.controls",
+          "name": "Copilot TTS",
+          "icon": "icon.png"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "copilot-tts.playLast",
+        "key": "ctrl+6",
+        "when": "editorTextFocus || chatInputHasFocus || terminalFocus"
+      },
+      {
+        "command": "copilot-tts.stopReading",
+        "key": "shift+ctrl+6",
+        "when": "editorTextFocus || chatInputHasFocus || terminalFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "copilot-tts.stopReading",
+          "group": "copilot-tts@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test:windows:speed": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/test-windows-speed.ps1",
+    "package": "mise exec node@20 -- npx @vscode/vsce package --no-dependencies --allow-missing-repository",
+    "clean:windows": "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ./scripts/clean-windows.ps1",
+    "package-and-clean:windows": "npm run package && npm run clean:windows"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.4.0"
+  }
+}

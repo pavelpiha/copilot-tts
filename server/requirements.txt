@@ -1,0 +1,9 @@
+# Supertonic 3 TTS SDK
+supertonic
+
+# HTTP server
+fastapi>=0.110.0
+uvicorn>=0.29.0
+
+# Pydantic v2 (pulled in by fastapi, listed explicitly for clarity)
+pydantic>=2.0.0
