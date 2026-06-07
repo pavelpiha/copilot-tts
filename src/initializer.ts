@@ -4,6 +4,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { spawn } from "child_process";
 import type { TtsService } from "./ttsService";
+import { MANAGED_PYTHON_VERSION } from "./managedRuntime";
 import { createManagedVenv } from "./managedRuntime";
 import {
   type PythonCommandSpec,
@@ -34,10 +35,10 @@ export async function runInitialize(
   // ── Confirmation modal ───────────────────────────────────────────────────
   if (requireConfirmation) {
     const choice = await vscode.window.showInformationMessage(
-      "Copilot TTS — Initialize\n\nThis will:\n" +
-        "  1. Install Python if needed, then install Python dependencies\n" +
-        "  2. Start the TTS server\n\n" +
-        "No separate Python setup should be required.",
+      "Copilot TTS - Initialize\n\nThis will:\n" +
+        `  1. Download Python ^${MANAGED_PYTHON_VERSION} and install Python dependencies\n` +
+        "  2. Download the TTS model (~500 MB) on first run\n" +
+        "  3. Start the TTS server",
       { modal: true },
       "Continue",
     );
@@ -164,28 +165,34 @@ async function installDepsInVenv(
   // ── Create venv (idempotent — skipped if python binary already exists) ──
   if (!fs.existsSync(venvPython)) {
     out.appendLine(`Creating venv at: ${venvDir}`);
-    if (debugLogging) {
-      out.appendLine(
-        `Using base Python candidate${pythonCandidates.length === 1 ? "" : "s"}: ${pythonCandidates.map((candidate) => candidate.display).join(", ")}\n`,
-      );
+    if (platform === "darwin") {
+      // On macOS always use the managed runtime (uv + Python >3.14).
+      // This avoids system Python (3.9), PEP 668 errors, and PATH issues.
+      await createManagedVenv(context, platform, venvDir, out);
     } else {
-      out.appendLine("Detecting local Python...\n");
-    }
-    try {
-      await createVenv(venvDir, pythonCandidates, out, debugLogging);
-    } catch (error) {
-      const lastError =
-        error instanceof Error ? error : new Error(String(error));
       if (debugLogging) {
         out.appendLine(
-          `Falling back to a managed Python runtime because local venv creation failed: ${lastError.message}\n`,
+          `Using base Python candidate${pythonCandidates.length === 1 ? "" : "s"}: ${pythonCandidates.map((candidate) => candidate.display).join(", ")}\n`,
         );
       } else {
-        out.appendLine(
-          "No usable local Python found. Falling back to a managed Python runtime.\n",
-        );
+        out.appendLine("Detecting local Python...\n");
       }
-      await createManagedVenv(context, platform, venvDir, out);
+      try {
+        await createVenv(venvDir, pythonCandidates, out, debugLogging);
+      } catch (error) {
+        const lastError =
+          error instanceof Error ? error : new Error(String(error));
+        if (debugLogging) {
+          out.appendLine(
+            `Falling back to a managed Python runtime because local venv creation failed: ${lastError.message}\n`,
+          );
+        } else {
+          out.appendLine(
+            "No usable local Python found. Falling back to a managed Python runtime.\n",
+          );
+        }
+        await createManagedVenv(context, platform, venvDir, out);
+      }
     }
   } else {
     out.appendLine(`Reusing existing venv: ${venvDir}\n`);
@@ -264,7 +271,7 @@ async function createVenv(
   throw (
     lastError ??
     new Error(
-      "No usable Python launcher found. Set the copilot-tts.pythonPath setting to a Python 3.9+ executable.",
+      "No usable Python launcher found. Set the copilot-tts.pythonPath setting to a Python 3.14+ executable.",
     )
   );
 }
@@ -297,7 +304,7 @@ function runCommand(
         reject(
           new Error(
             `Executable not found: "${cmd}".\n` +
-              `Make sure "${pythonForErrorHint}" is Python 3.9+ and in your PATH,\n` +
+              `Make sure "${pythonForErrorHint}" is Python 3.14+ and in your PATH,\n` +
               'or update the "copilot-tts.pythonPath" setting.',
           ),
         );

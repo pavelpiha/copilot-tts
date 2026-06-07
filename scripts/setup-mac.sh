@@ -4,40 +4,6 @@ set -euo pipefail
 
 echo "=== Copilot TTS — macOS setup ==="
 
-# ── Python check ──────────────────────────────────────────────────────────────
-PYTHON=""
-for candidate in python3 python; do
-    if command -v "$candidate" &>/dev/null; then
-        VERSION=$("$candidate" --version 2>&1 | awk '{print $2}')
-        MAJOR=$(echo "$VERSION" | cut -d. -f1)
-        MINOR=$(echo "$VERSION" | cut -d. -f2)
-        if [ "$MAJOR" -ge 3 ] && [ "$MINOR" -ge 9 ]; then
-            PYTHON="$candidate"
-            echo "Found Python $VERSION at $(command -v "$candidate")"
-            break
-        fi
-    fi
-done
-
-if [ -z "$PYTHON" ]; then
-    echo ""
-    echo "ERROR: Python 3.9+ not found."
-    echo "Install via Homebrew:  brew install python3"
-    echo "Or download from:      https://python.org/downloads/"
-    exit 1
-fi
-
-# ── pip check ─────────────────────────────────────────────────────────────────
-if ! "$PYTHON" -m pip --version &>/dev/null; then
-    echo "ERROR: pip not found. Run:  $PYTHON -m ensurepip --upgrade"
-    exit 1
-fi
-
-# ── Install Python dependencies ───────────────────────────────────────────────
-echo ""
-echo "Installing Python dependencies…"
-"$PYTHON" -m pip install --upgrade supertonic fastapi "uvicorn[standard]"
-
 # ── Verify afplay (built-in on macOS) ────────────────────────────────────────
 if command -v afplay &>/dev/null; then
     echo "afplay found — audio playback is ready."

@@ -6,7 +6,7 @@ import * as path from "path";
 import { spawn } from "child_process";
 import * as vscode from "vscode";
 
-const MANAGED_PYTHON_VERSION = "3.12";
+export const MANAGED_PYTHON_VERSION = "3.14";
 const UV_RELEASE_BASE_URL =
   "https://github.com/astral-sh/uv/releases/latest/download";
 
