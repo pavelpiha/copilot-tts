@@ -1,11 +1,5 @@
 # Copilot TTS
 
-<p align="center">
-  <a href="https://ko-fi.com/pavelpiha">
-    <img src="https://img.shields.io/badge/☕ Buy me a coffee-%23FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi"/>
-  </a>
-</p>
-
 A VS Code extension that reads GitHub Copilot Chat responses aloud using a local TTS server.
 
 ![Copilot TTS Screenshot](assets/Screenshot.png)
@@ -99,6 +93,11 @@ Run `Copilot TTS: Initialize Copilot TTS` again and inspect the `Copilot TTS Ser
 **I want to remove everything before uninstalling**
 
 Run `Copilot TTS: Clean Local TTS Data` before uninstalling. VS Code does not give this extension a reliable uninstall hook, so local cleanup must be triggered explicitly.
+
+## Support
+If extension helps you, you can support its development on Ko-fi: 
+
+<a href="https://ko-fi.com/pavelpiha" target="_blank"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" height="36"></a>
 
 ## License
 
